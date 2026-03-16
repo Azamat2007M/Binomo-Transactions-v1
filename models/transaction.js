@@ -51,7 +51,7 @@ const transactionSchema = new mongoose.Schema(
 
     endTime: {
       type: Date,
-      required: true,
+      default: null,
     },
   },
   { timestamps: true }

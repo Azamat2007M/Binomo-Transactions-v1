@@ -19,66 +19,66 @@ app.listen(PORT, () =>
   console.log('Server:', `http://localhost:${PORT}/transactions`)
 );
 
-setInterval(async () => {  
+const autoCloseTrades = async () => {
   try {
-    const today = new Date()
-    const startOfToday = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-    const endOfToday = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1)
-    const openTransactions = await Transaction.find({ status: "open" });
-    const trades = await Transaction.deleteMany({
-      $or: [
-        { endTime: { $lt: startOfToday } },
-        { endTime: { $gte: endOfToday } }
-      ]
+    const now = Date.now();
+
+    const openTrades = await Transaction.find({
+      status: "open",
+      endTime: { $ne: null, $lte: now }
     });
-    
-    
-    for (let trade of openTransactions) {  
-      if (Date.now() >= new Date(trade.endTime).getTime()) {        
+
+    for (let trade of openTrades) {
+      try {
         const priceResponse = await axios.get(
-          `https://api.binance.com/api/v3/ticker/price?symbol=${trade.coin}`
+          `https://api.binance.com/api/v3/ticker/price?symbol=${trade.coin.toUpperCase()}`
         );
-        
-        const newPrice = Number(priceResponse.data.price)   
-        let percentChange = 0    
-        let profit = 0
-        
+        const newPrice = Number(priceResponse.data.price);
+
+        let percentChange = 0;
         if (trade.tradePosition === "Buy") {
-          percentChange = (newPrice - trade.startPrice) / trade.startPrice
+          percentChange = (newPrice - trade.startPrice) / trade.startPrice;
         } else {
-          percentChange = (trade.startPrice - newPrice) / trade.startPrice
+          percentChange = (trade.startPrice - newPrice) / trade.startPrice;
         }
+        const profit = trade.amount * percentChange * 100;
 
-        profit = trade.amount * percentChange
         trade.endPrice = newPrice;
-        trade.profit = profit * 100;
-        
+        trade.profit = profit;
         trade.status = "closed";
-
-        await trade.save();
 
         try {
           const userResponse = await axios.get(
             `https://binomo-backend-v1.onrender.com/users/${trade.userId}`
           );
-          const currentWallet = userResponse.data.wallet || 0; 
-          const newWallet = currentWallet + (profit * 100);
+          const currentWallet = userResponse.data.wallet || 0;
+          const newWallet = currentWallet + profit;
 
           await axios.patch(
             `https://binomo-backend-v1.onrender.com/users/${trade.userId}`,
-            {
-              wallet: newWallet
-            }
+            { wallet: newWallet }
           );
         } catch (error) {
-          console.log(error, "User wallet didn't update");
+          console.log("User wallet didn't update for trade:", trade._id);
         }
+
+        await trade.save();
+      } catch (error) {
+        console.log("Error processing trade:", trade._id, error.message);
       }
     }
+
+    await Transaction.deleteMany({
+      status: "closed",
+      endTime: { $lt: Date.now() - 30 * 24 * 60 * 60 * 1000 } 
+    });
+
   } catch (error) {
     console.log("Auto close error:", error.message);
   }
-}, 5000);
+};
+
+setInterval(autoCloseTrades, 5000);
 
 const startServer = async () => {
   try {

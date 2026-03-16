@@ -19,17 +19,24 @@ router.post("/", async (req, res) => {
   try {
     const { userId, coin, amount, tradePosition, duration } = req.body;
 
-    if (!userId || !coin || !amount || !tradePosition || !duration) {
+    if (!userId || !coin || !amount || !tradePosition) {
       return res.status(400).json("Missing required fields");
     }
 
     const priceResponse = await axios.get(
       `https://api.binance.com/api/v3/ticker/price?symbol=${coin.toUpperCase()}`
     );
-
     const startPrice = Number(priceResponse.data.price);
-    const endTime = new Date(Date.now() + duration * 60000);
-    
+
+    let endTime = null;
+    if (duration) {
+      const durationMs = Number(duration) * 60000;
+      if (isNaN(durationMs)) {
+        return res.status(400).json("Invalid duration");
+      }
+      endTime = new Date(Date.now() + durationMs);
+    }
+
     const transaction = new Transaction({
       userId,
       coin,
@@ -45,7 +52,7 @@ router.post("/", async (req, res) => {
 
   } catch (error) {
     console.log(error);
-    res.status(500).json("Transaction was not created");
+    res.status(500).json(error.message);
   }
 });
 //post
