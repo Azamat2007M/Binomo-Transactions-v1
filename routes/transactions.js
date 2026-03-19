@@ -17,18 +17,15 @@ router.get('/', async (req, res) => {
 //post
 router.post("/", async (req, res) => {
   try {
-    const { userId, coin, amount, tradePosition, duration } = req.body;
+    const { userId, coinPrice, coin, amount, tradePosition, duration } = req.body;
 
-    if (!userId || !coin || !amount || !tradePosition) {
+    if (!userId || !coinPrice || !amount || !tradePosition) {
       return res.status(400).json("Missing required fields");
     }
 
-    const priceResponse = await axios.get(
-      `https://api.binance.com/api/v3/ticker/price?symbol=${coin.toUpperCase()}`
-    );
-    const startPrice = Number(priceResponse.data.price);
-
+    const startPrice = Number(coinPrice);
     let endTime = null;
+
     if (duration) {
       const durationMs = Number(duration) * 60000;
       if (isNaN(durationMs)) {
