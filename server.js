@@ -34,7 +34,6 @@ const autoCloseTrades = async () => {
           `https://api.binance.com/api/v3/ticker/price?symbol=${trade.coin.toUpperCase()}`
         );
         const newPrice = Number(priceResponse.data.price);
-        res.status(400).json(`Price opened: ${newPrice}`);
 
         let percentChange = 0;
         if (trade.tradePosition === "Buy") {
@@ -52,15 +51,26 @@ const autoCloseTrades = async () => {
           const userResponse = await axios.get(
             `https://binomo-backend-v1.onrender.com/users/${trade.userId}`
           );
-          const currentWallet = userResponse.data.wallet || 0;
+          const currentWallet = Number(userResponse.data.wallet) || 0;
           const newWallet = currentWallet + profit;
 
-          await axios.patch(
+          const formData = new FormData();
+          formData.append('wallet', newWallet);
+
+          const userUpdateResponse = await axios.patch(
             `https://binomo-backend-v1.onrender.com/users/${trade.userId}`,
-            { wallet: newWallet }
+            formData,
+            {
+              headers: {
+                'Content-Type': 'multipart/form-data',
+              },
+            }
           );
+          
+          console.log("Кошелек успешно обновлен:", userUpdateResponse.data.wallet);
         } catch (error) {
-          console.log("User wallet didn't update for trade ID:", trade.id);
+          const serverError = error.response ? error.response.data : error.message;
+          console.log("User wallet didn't update for trade ID. Причина:", serverError);
         }
 
         await trade.save();
