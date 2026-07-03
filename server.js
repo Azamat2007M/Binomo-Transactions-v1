@@ -34,6 +34,7 @@ const autoCloseTrades = async () => {
           `https://api.binance.com/api/v3/ticker/price?symbol=${trade.coin.toUpperCase()}`
         );
         const newPrice = Number(priceResponse.data.price);
+        res.status(400).json(`Price opened: ${newPrice}`);
 
         let percentChange = 0;
         if (trade.tradePosition === "Buy") {
