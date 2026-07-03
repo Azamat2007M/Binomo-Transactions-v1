@@ -1,20 +1,16 @@
 const { Router } = require('express');
 const router = Router();
 const Transaction = require('../models/transaction');
-const axios = require("axios");
 
-// get
 router.get('/', async (req, res) => {
   try {
-    const transactions = await Transaction.find();
+    const transactions = await Transaction.findAll();
     res.status(200).json(transactions);
   } catch (error) {
     res.status(400).json(error.message);
   }
 });
-// get
 
-//post
 router.post("/", async (req, res) => {
   try {
     const { userId, coinPrice, coin, amount, tradePosition, duration } = req.body;
@@ -34,7 +30,7 @@ router.post("/", async (req, res) => {
       endTime = new Date(Date.now() + durationMs);
     }
 
-    const transaction = new Transaction({
+    const transaction = await Transaction.create({
       userId,
       coin,
       amount,
@@ -43,42 +39,41 @@ router.post("/", async (req, res) => {
       endTime,
     });
 
-    await transaction.save();
-
     res.status(201).json(transaction);
-
   } catch (error) {
     console.log(error);
     res.status(500).json(error.message);
   }
 });
-//post
 
-//delete
-router.delete('/:_id', async (req, res) => {
+router.delete('/:id', async (req, res) => {
   try {
-    await Transaction.findByIdAndDelete({ _id: req.params._id });
+    const id = req.params.id;
+    const deleted = await Transaction.destroy({ where: { id } });
 
-    res.send(`${req.params._id} Transaction was successfuly deleted: OK`);
+    if (!deleted) {
+      return res.status(404).json("Transaction not found");
+    }
+
+    res.send(`${id} Transaction was successfully deleted: OK`);
   } catch (error) {
     console.log({
-      error,
+      error: error.message,
       message: "Transaction wasn't deleted. Something went wrong!",
     });
+    res.status(500).json({ message: "Server error" });
   }
 });
-//delete
 
-//get by id
-router.get('/:_id', async (req, res) => {
+router.get('/:id', async (req, res) => {
   try {
-    const transaction = await Transaction.findById(req.params._id);
-    
+    const transaction = await Transaction.findByPk(req.params.id);
+    if (!transaction) return res.status(404).json("Transaction not found");
+
     res.status(200).json(transaction);
   } catch (error) {
     res.status(400).json(error.message);
   }
 });
-//get by id
 
 module.exports = router;

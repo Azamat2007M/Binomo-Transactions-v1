@@ -1,60 +1,49 @@
-const mongoose = require("mongoose");
+const { DataTypes } = require("sequelize");
+const sequelize = require("../config/db");
 
-const transactionSchema = new mongoose.Schema(
-  {
-    userId: {
-      type: String,
-      required: true,
-    },
-
-    coin: {
-      type: String,
-      required: true,
-    },
-
-    amount: {
-      type: Number,
-      required: true,
-    },
-
-    tradePosition: {
-      type: String,
-      enum: ["Buy", "Sell"],
-      required: true,
-    },
-
-    startPrice: {
-      type: Number,
-      required: true,
-    },
-
-    endPrice: {
-      type: Number,
-      default: null,
-    },
-
-    profit: {
-      type: Number,
-      default: 0,
-    },
-
-    status: {
-      type: String,
-      enum: ["open", "closed"],
-      default: "open",
-    },
-
-    startTime: {
-      type: Date,
-      default: Date.now,
-    },
-
-    endTime: {
-      type: Date,
-      default: null,
-    },
+const Transaction = sequelize.define("Transaction", {
+  userId: {
+    type: DataTypes.STRING,
+    allowNull: false,
   },
-  { timestamps: true }
-);
+  coin: {
+    type: DataTypes.STRING,
+    allowNull: false,
+  },
+  amount: {
+    type: DataTypes.DOUBLE,
+    allowNull: false,
+  },
+  tradePosition: {
+    type: DataTypes.ENUM("Buy", "Sell"),
+    allowNull: false,
+  },
+  startPrice: {
+    type: DataTypes.DOUBLE,
+    allowNull: false,
+  },
+  endPrice: {
+    type: DataTypes.DOUBLE,
+    defaultValue: null,
+  },
+  profit: {
+    type: DataTypes.DOUBLE,
+    defaultValue: 0,
+  },
+  status: {
+    type: DataTypes.ENUM("open", "closed"),
+    defaultValue: "open",
+  },
+  startTime: {
+    type: DataTypes.DATE,
+    defaultValue: DataTypes.NOW,
+  },
+  endTime: {
+    type: DataTypes.DATE,
+    defaultValue: null,
+  },
+}, {
+  timestamps: true, 
+});
 
-module.exports = mongoose.model("Transaction", transactionSchema);
+module.exports = Transaction;

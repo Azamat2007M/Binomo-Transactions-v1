@@ -1,31 +1,31 @@
 const express = require('express');
 require('dotenv').config();
-const { default: mongoose } = require('mongoose');
+const sequelize = require('./config/db'); 
+const { Op } = require('sequelize'); 
 const cors = require('cors');
 const transactionsRouter = require('./routes/transactions');
 const axios = require("axios");
 const Transaction = require("./models/transaction");
+
 const app = express();
 app.use(cors());
-
 app.use(express.json());
 app.use('/transactions', transactionsRouter);
 
 const PORT = process.env.PORT || 1000;
 
-mongoose.set('strictQuery', true);
-
-app.listen(PORT, () =>
-  console.log('Server:', `http://localhost:${PORT}/transactions`)
-);
-
 const autoCloseTrades = async () => {
   try {
-    const now = Date.now();
+    const now = new Date();
 
-    const openTrades = await Transaction.find({
-      status: "open",
-      endTime: { $ne: null, $lte: now }
+    const openTrades = await Transaction.findAll({
+      where: {
+        status: "open",
+        endTime: {
+          [Op.ne]: null,  
+          [Op.lte]: now   
+        }
+      }
     });
 
     for (let trade of openTrades) {
@@ -59,18 +59,23 @@ const autoCloseTrades = async () => {
             { wallet: newWallet }
           );
         } catch (error) {
-          console.log("User wallet didn't update for trade:", trade._id);
+          console.log("User wallet didn't update for trade ID:", trade.id);
         }
 
         await trade.save();
       } catch (error) {
-        console.log("Error processing trade:", trade._id, error.message);
+        console.log("Error processing trade ID:", trade.id, error.message);
       }
     }
 
-    await Transaction.deleteMany({
-      status: "closed",
-      endTime: { $lt: Date.now() - 30 * 24 * 60 * 60 * 1000 } 
+    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+    await Transaction.destroy({
+      where: {
+        status: "closed",
+        endTime: {
+          [Op.lt]: thirtyDaysAgo 
+        }
+      }
     });
 
   } catch (error) {
@@ -82,12 +87,17 @@ setInterval(autoCloseTrades, 5000);
 
 const startServer = async () => {
   try {
-    await mongoose
-      .connect(process.env.MONGO_URL)
-      .then(() => console.log('OK!'))
-      .catch(() => console.log('ERROR!'));
+    await sequelize.authenticate();
+    console.log('PostgreSQL for Transactions connected successfully.');
+    
+    await sequelize.sync({ alter: true });
+    console.log('Transaction tables synced.');
+
+    app.listen(PORT, () =>
+      console.log('Server:', `http://localhost:${PORT}/transactions`)
+    );
   } catch (error) {
-    console.log(error);
+    console.log('Database connection error:', error);
   }
 };
 
