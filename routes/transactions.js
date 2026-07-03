@@ -14,9 +14,9 @@ router.get('/', async (req, res) => {
 router.post("/", async (req, res) => {
   try {
     const { userId, coinPrice, coin, amount, tradePosition, duration } = req.body;
-
+    console.log(userId, coinPrice, coin, amount, tradePosition, duration);
     if (!userId || !coinPrice || !amount || !tradePosition) {
-      return res.status(400).json("Missing required fields");
+      return res.status(400).json(`Missing required fields ${userId}`);
     }
 
     const startPrice = Number(coinPrice);
