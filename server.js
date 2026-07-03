@@ -49,7 +49,7 @@ const autoCloseTrades = async () => {
 
         try {
           const userResponse = await axios.get(
-            `https://binomo-backend-v1.onrender.com/users/${trade.userId}`
+            `http://localhost:8000/users/${trade.userId}`
           );
           const currentWallet = Number(userResponse.data.wallet) || 0;
           const newWallet = currentWallet + profit;
@@ -58,7 +58,7 @@ const autoCloseTrades = async () => {
           formData.append('wallet', newWallet);
 
           const userUpdateResponse = await axios.patch(
-            `https://binomo-backend-v1.onrender.com/users/${trade.userId}`,
+            `http://localhost:8000/users/${trade.userId}`,
             formData,
             {
               headers: {
